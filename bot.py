@@ -23,7 +23,7 @@ from aiohttp import web
 # ─── Configuration ──────────────────────────────────────────────
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "9129907249:AAE31Px34Hp0jooFz-foXtZINA7dM_iLAzI")
 DATABASE_URL = os.environ.get("DATABASE_URL")
-RENDER_URL = os.environ.get("RENDER_EXTERNAL_URL", "https://render-telegram-bot.onrender.com")
+RENDER_URL = os.environ.get("RENDER_EXTERNAL_URL", "https://render-telegram-bot-rruj.onrender.com")
 PORT = int(os.environ.get("PORT", 10000))
 
 if not TELEGRAM_TOKEN:
@@ -32,7 +32,7 @@ if not TELEGRAM_TOKEN:
 # ─── Logging ────────────────────────────────────────────────────
 logging.basicConfig(
     format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-    level=logging.INFO,
+    level=logging.DEBUG,
 )
 logger = logging.getLogger(__name__)
 
@@ -253,6 +253,7 @@ async def handle_webhook(request: web.Request) -> web.Response:
     """Process incoming Telegram webhook."""
     try:
         data = await request.json()
+        logger.debug(f"Webhook received: {data}")
         update = Update.de_json(data, application.bot)
         await application.process_update(update)
         return web.Response(text="OK")
@@ -272,11 +273,25 @@ async def handle_root(request: web.Request) -> web.Response:
     """Root endpoint - keep-alive target."""
     return web.Response(text="🤖 Render Telegram Bot is running!")
 
+async def handle_debug(request: web.Request) -> web.Response:
+    """Debug endpoint to check bot status."""
+    return web.json_response({
+        "bot_token_set": bool(TELEGRAM_TOKEN),
+        "render_url": RENDER_URL,
+        "port": PORT,
+        "database_url_set": bool(DATABASE_URL),
+        "db_pool_active": db_pool is not None,
+    })
+
 async def on_startup(app: web.Application):
     """Set webhook on startup."""
     webhook_url = f"{RENDER_URL}/webhook"
-    await application.bot.set_webhook(webhook_url, drop_pending_updates=True)
-    logger.info(f"✅ Webhook set to {webhook_url}")
+    logger.info(f"Setting webhook to: {webhook_url}")
+    try:
+        await application.bot.set_webhook(webhook_url, drop_pending_updates=True)
+        logger.info(f"✅ Webhook set successfully to {webhook_url}")
+    except Exception as e:
+        logger.error(f"❌ Failed to set webhook: {e}")
 
 async def on_shutdown(app: web.Application):
     """Cleanup on shutdown."""
@@ -310,10 +325,13 @@ init_db()
 web_app = web.Application()
 web_app.router.add_get("/", handle_root)
 web_app.router.add_get("/health", handle_health)
+web_app.router.add_get("/debug", handle_debug)
 web_app.router.add_post("/webhook", handle_webhook)
 web_app.on_startup.append(on_startup)
 web_app.on_shutdown.append(on_shutdown)
 
 if __name__ == "__main__":
     logger.info(f"🚀 Starting server on port {PORT}")
+    logger.info(f"🌐 Render URL: {RENDER_URL}")
+    logger.info(f"🔗 Webhook URL: {RENDER_URL}/webhook")
     web.run_app(web_app, host="0.0.0.0", port=PORT)
