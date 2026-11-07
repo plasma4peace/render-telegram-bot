@@ -3,7 +3,6 @@ Render Max-Power Telegram Bot
 Free tier optimized with webhook support, PostgreSQL persistence, and keep-alive endpoint.
 """
 import os
-import asyncio
 import logging
 from datetime import datetime
 from typing import Optional
@@ -22,9 +21,9 @@ from telegram.ext import (
 from aiohttp import web
 
 # ─── Configuration ──────────────────────────────────────────────
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "9129907249:AAE31Px34Hp0jooFz-foXtZINA7dM_iLAzI")
 DATABASE_URL = os.environ.get("DATABASE_URL")
-RENDER_URL = os.environ.get("RENDER_EXTERNAL_URL", "https://your-app.onrender.com")
+RENDER_URL = os.environ.get("RENDER_EXTERNAL_URL", "https://render-telegram-bot.onrender.com")
 PORT = int(os.environ.get("PORT", 10000))
 
 if not TELEGRAM_TOKEN:
@@ -245,7 +244,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "• PostgreSQL (90 days free)\n"
             "• Webhook mode for zero latency\n"
             "• Auto-deploy from GitHub\n\n"
-            "Source: github.com/yourusername/render-telegram-bot",
+            "Source: github.com/plasma4peace/render-telegram-bot",
             parse_mode="Markdown"
         )
 
